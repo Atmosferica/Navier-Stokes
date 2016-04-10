@@ -15,8 +15,8 @@ DEBUGMODE	:= true
 #Makefile for the Device ########################
 
 NVCC		:= nvcc -G
-ESEGUIBILE	:= fluids.x
-OBJ			:= fluidsGL.o fluidsGL_kernels.o
+ESEGUIBILE	:= N-S.x
+OBJ			:= Navier_Stokes_Numeric.o fluidsGL_kernels.o
 CC			:= g++
 FLAGS 		:= -O2 -g 
 ARCH 		:= -arch=sm_20

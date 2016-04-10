@@ -238,7 +238,7 @@ updateVelocity_k(cData *v, float *vx, float *vy,
 // This method updates the particles by moving particle positions
 // according to the velocity field and time step. That is, for each
 // particle: p(t+1) = p(t) + dt * v(p(t)).
-__global__ void
+/*__global__ void
 advectParticles_k(cData *part, cData *v, int dx, int dy,
                   float dt, int lb, size_t pitch)
 {
@@ -280,7 +280,7 @@ advectParticles_k(cData *part, cData *v, int dx, int dy,
         } // If this thread is inside the domain in Y
     } // If this thread is inside the domain in X
 }
-
+*/
 
 // These are the external function calls necessary for launching fluid simulation
 extern "C"
@@ -335,7 +335,7 @@ void updateVelocity(cData *v, float *vx, float *vy, int dx, int pdx, int dy)
     getLastCudaError("updateVelocity_k failed.");
 }
 
-extern "C"
+/*extern "C"
 void advectParticles(GLuint vbo, cData *v, int dx, int dy, float dt)
 {
     dim3 grid((dx/TILEX)+(!(dx%TILEX)?0:1), (dy/TILEY)+(!(dy%TILEY)?0:1));
@@ -355,4 +355,4 @@ void advectParticles(GLuint vbo, cData *v, int dx, int dy, float dt)
 
     cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0);
     getLastCudaError("cudaGraphicsUnmapResources failed");
-}
+}*/

@@ -20,7 +20,7 @@ OBJ			:= fluidsGL.o fluidsGL_kernels.o
 CC			:= g++
 FLAGS 		:= -O2 -g 
 ARCH 		:= -arch=sm_20
-LIBS		:= -lGL -lglut -lGLEW  -lcuda -lcufft
+LIBS		:= -lGL -lglut -lGLEW  -lcuda -lcufft -lX11
 INC			:= -I/usr/local/cuda/include/ -I/usr/local/cuda/samples/common/inc 
 
 %.o : %.cpp

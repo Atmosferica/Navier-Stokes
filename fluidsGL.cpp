@@ -1,5 +1,12 @@
 #include <GL/glew.h>
+#if defined(__APPLE__) || defined(MACOSX)
+  #include <GLUT/glut.h>
+  #ifndef glutCloseFunc
+  #define glutCloseFunc glutWMCloseFunc
+  #endif
+#else
 #include <GL/freeglut.h>
+#endif
 
 // Includes
 #include <stdlib.h>
@@ -19,7 +26,44 @@
 #include <helper_cuda.h>
 #include <helper_cuda_gl.h>
 
+#ifdef WIN32
+bool IsOpenGLAvailable(const char *appName)
+{
+    return true;
+}
+#else
+#if (defined(__APPLE__) || defined(MACOSX))
+bool IsOpenGLAvailable(const char *appName)
+{
+    return true;
+}
+#else
+// check if this is a linux machine
+#include <X11/Xlib.h>
+
+bool IsOpenGLAvailable(const char *appName)
+{
+    Display *Xdisplay = XOpenDisplay(NULL);
+
+    if (Xdisplay == NULL)
+    {
+        return false;
+    }
+    else
+    {
+        XCloseDisplay(Xdisplay);
+        return true;
+    }
+}
+#endif
+#endif
+
+#if defined(__APPLE__) || defined(MACOSX)
+#include <GLUT/glut.h>
+#else
 #include <GL/freeglut.h>
+#endif
+
 #include "defines.h"
 #include "fluidsGL_kernels.h"
 
@@ -72,7 +116,7 @@ bool g_bExitESC = false;
 // CheckFBO/BackBuffer class objects
 CheckRender       *g_CheckRender = NULL;
 
-void autoTest(char **);
+void autoTest();
 
 extern "C" void addForces(cData *v, int dx, int dy, int spx, int spy, float fx, float fy, int r);
 extern "C" void advectVelocity(cData *v, float *vx, float *vy, int dx, int pdx, int dy, float dt);
@@ -158,7 +202,7 @@ void autoTest(char **argv)
     {
         simulateFluids();
 
-        // add in a little force so the automated testing is interesting.
+        // add in a little force so the automated testing is interesing.
         if (ref_file)
         {
             int x = wWidth/(count+1);
@@ -185,7 +229,7 @@ void autoTest(char **argv)
 
     fbo->unbindRenderPath();
 
-    // compare to official reference image, printing PASS or FAIL.
+    // compare to offical reference image, printing PASS or FAIL.
     printf("> (Frame %d) Readback BackBuffer\n", 100);
     g_CheckRender->readback(wWidth, wHeight);
     g_CheckRender->savePPM("fluidsGL.ppm", true, NULL);
@@ -240,12 +284,7 @@ void keyboard(unsigned char key, int x, int y)
     {
         case 27:
             g_bExitESC = true;
-            #if defined (__APPLE__) || defined(MACOSX)
-                exit(EXIT_SUCCESS);
-            #else
-                glutDestroyWindow(glutGetWindow());
-                return;
-            #endif
+            exit(EXIT_SUCCESS);
             break;
 
         case 'r':
@@ -352,6 +391,16 @@ void cleanup(void)
 
 int initGL(int *argc, char **argv)
 {
+    if (IsOpenGLAvailable(sSDKname))
+    {
+        fprintf(stderr, "   OpenGL device is Available\n");
+    }
+    else
+    {
+        fprintf(stderr, "   OpenGL device is NOT Available, [%s] exiting...\n", sSDKname);
+        exit(EXIT_SUCCESS);
+    }
+
     glutInit(argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
     glutInitWindowSize(wWidth, wHeight);
@@ -382,21 +431,19 @@ int main(int argc, char **argv)
 {
     int devID;
     cudaDeviceProp deviceProps;
-    setenv ("DISPLAY", ":0", 0);
     printf("%s Starting...\n\n", sSDKname);
-
-    printf("NOTE: The CUDA Samples are not meant for performance measurements. Results may vary when GPU Boost is enabled.\n\n");
+    printf("[%s] - [OpenGL/CUDA simulation] starting...\n", sSDKname);
 
     // First initialize OpenGL context, so we can properly set the GL for CUDA.
     // This is necessary in order to achieve optimal performance with OpenGL/CUDA interop.
-    if(false == initGL(&argc, argv))
+    if (false == initGL(&argc, argv))
     {
-       exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
     }
 
     // use command-line specified CUDA device, otherwise use device with highest Gflops/s
-    //devID = findCudaGLDevice(argc, (const char **)argv);
-	devID=0;
+    devID = findCudaGLDevice(argc, (const char **)argv);
+
     // get number of SMs on this GPU
     checkCudaErrors(cudaGetDeviceProperties(&deviceProps, devID));
     printf("CUDA device [%s] has %d Multi-Processors\n",
@@ -409,10 +456,7 @@ int main(int argc, char **argv)
     }
 
     // Allocate and initialize host data
-	printf("TEST3\n");
-	GLint bsize;
-	printf("TEST4\n");
-
+    GLint bsize;
 
     sdkCreateTimer(&timer);
     sdkResetTimer(&timer);
@@ -431,7 +475,7 @@ int main(int argc, char **argv)
 
     setupTexture(DIM, DIM);
     bindTexture();
-	printf("TEST\n");
+
     // Create particle array
     particles = (cData *)malloc(sizeof(cData) * DS);
     memset(particles, 0, sizeof(cData) * DS);
@@ -439,13 +483,13 @@ int main(int argc, char **argv)
     initParticles(particles, DIM, DIM);
 
     // Create CUFFT transform plan configuration
-    checkCudaErrors(cufftPlan2d(&planr2c, DIM, DIM, CUFFT_R2C));
-    checkCudaErrors(cufftPlan2d(&planc2r, DIM, DIM, CUFFT_C2R));
+    cufftPlan2d(&planr2c, DIM, DIM, CUFFT_R2C);
+    cufftPlan2d(&planc2r, DIM, DIM, CUFFT_C2R);
     // TODO: update kernels to use the new unpadded memory layout for perf
     // rather than the old FFTW-compatible layout
     cufftSetCompatibilityMode(planr2c, CUFFT_COMPATIBILITY_FFTW_PADDING);
     cufftSetCompatibilityMode(planc2r, CUFFT_COMPATIBILITY_FFTW_PADDING);
-	printf("TEST2\n");
+
     glGenBuffersARB(1, &vbo);
     glBindBufferARB(GL_ARRAY_BUFFER_ARB, vbo);
     glBufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(cData) * DS,
@@ -478,7 +522,11 @@ int main(int argc, char **argv)
     }
     else
     {
+#if defined (__APPLE__) || defined(MACOSX)
+        atexit(cleanup);
+#else
         glutCloseFunc(cleanup);
+#endif
         glutMainLoop();
     }
 

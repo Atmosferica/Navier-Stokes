@@ -230,6 +230,8 @@ updateVelocity_k(cData *v, float *vx, float *vy,
 
                 cData *fj = (cData *)((char *)v + fi * pitch) + gtidx;
                 *fj = nvterm;
+				printf("%f\t%f\n",nvterm.x,nvterm.y);
+
             }
         } // If this thread is inside the domain in Y
     } // If this thread is inside the domain in X
@@ -332,7 +334,7 @@ void updateVelocity(cData *v, float *vx, float *vy, int dx, int pdx, int dy)
     dim3 tids(TIDSX, TIDSY);
 
     updateVelocity_k<<<grid, tids>>>(v, vx, vy, dx, pdx, dy, TILEY/TIDSY, tPitch);
-    getLastCudaError("updateVelocity_k failed.");
+	getLastCudaError("updateVelocity_k failed.");
 }
 
 /*extern "C"

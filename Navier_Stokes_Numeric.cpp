@@ -111,15 +111,26 @@ int main(int argc, char **argv)
 
 	//static int wWidth  = MAX(512, DIM);
 	//static int wHeight = MAX(512, DIM);
+	
+	static cData *hvxfield = NULL;
+	static cData *hvyfield = NULL;
+	hvxfield = (cData *)malloc(sizeof(cData) * PDS);
+	hvyfield = (cData *)malloc(sizeof(cData) * PDS);
+
 
     hvfield = (cData *)malloc(sizeof(cData) * DS);
     memset(hvfield, 0, sizeof(cData) * DS);
-    
+	for(int i=0; i<DS; i++){
+			hvfield[i].x=0;
+			hvfield[i].y=1;
+	}
+   
     cudaMallocPitch((void **)&dvfield, &tPitch, sizeof(cData)*DIM, DIM);
     cudaMemcpy(dvfield, hvfield, sizeof(cData) * DS, H_D);
 
     cudaMalloc((void **)&vxfield, sizeof(cData) * PDS);
     cudaMalloc((void **)&vyfield, sizeof(cData) * PDS);
+
 
     setupTexture(DIM, DIM);
     bindTexture();
@@ -134,9 +145,19 @@ int main(int argc, char **argv)
     cufftSetCompatibilityMode(planr2c, CUFFT_COMPATIBILITY_FFTW_PADDING);
     cufftSetCompatibilityMode(planc2r, CUFFT_COMPATIBILITY_FFTW_PADDING);
 
-	while(true){
+	for(int i=0; i<1000; i++){
 		simulateFluids();
 	}
-	
+	unbindTexture();
+    deleteTexture();
+    free(hvfield);
+    free(particles);
+    cudaFree(dvfield);
+    cudaFree(vxfield);
+    cudaFree(vyfield);
+    cufftDestroy(planr2c);
+    cufftDestroy(planc2r);
+    sdkDeleteTimer(&timer);
+
 	return 0;
 }
